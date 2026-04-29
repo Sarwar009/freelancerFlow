@@ -6,12 +6,23 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed": "node scripts/seed.cjs"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "framer-motion": "^12.35.0",
+    "lucide-react": "^0.577.0",
+    "mongodb": "^7.1.0",
     "next": "16.1.6",
+    "next-auth": "^4.24.13",
+    "ngrok": "^5.0.0-beta.2",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "react-router-dom": "^7.14.0",
+    "stripe": "^20.4.1",
+    "sweetalert2": "^11.26.24",
+    "sweetalert2-react-content": "^5.1.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
