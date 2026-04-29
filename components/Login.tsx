@@ -1,240 +1,89 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
-import { User, Lock, Save, Eye, EyeOff } from "lucide-react"
-import { useSession } from "next-auth/react"
-import Swal from "sweetalert2"
+import { signIn } from "next-auth/react"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Github, Globe } from "lucide-react"
 
-interface UserProfile {
-  name: string
-  email: string
-}
+export default function Login({ demo }: { demo: boolean }) {
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
-export default function Profile() {
-  const { data: session, update } = useSession()
+  const [email, setEmail] = useState(demo ? "demo@gmail.com" : "")
+  const [password, setPassword] = useState(demo ? "demo123" : "")
 
-  const isDemoUser = session?.user?.email === "demo@demo.com"
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setLoading(true)
 
-  const [profile, setProfile] = useState<UserProfile>({
-    name: "",
-    email: ""
-  })
+    const res = await signIn("credentials", {
+      redirect: false,
+      email,
+      password,
+    })
 
-  const [currentPassword, setCurrentPassword] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
+    setLoading(false)
 
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
-  const [showNewPassword, setShowNewPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-
-  const [profileLoading, setProfileLoading] = useState(false)
-  const [passwordLoading, setPasswordLoading] = useState(false)
-
-  // Load session
-  useEffect(() => {
-    if (session?.user) {
-      setProfile({
-        name: session.user.name || "",
-        email: session.user.email || ""
-      })
-    }
-  }, [session])
-
-  // ---------------------------
-  // UPDATE PROFILE
-  // ---------------------------
-  const updateProfile = async () => {
-    if (!profile.name) {
-      Swal.fire("Error", "Name is required", "error")
-      return
-    }
-
-    // EMAIL BLOCK
-    if (profile.email !== session?.user?.email) {
-      Swal.fire("Not allowed", "Email cannot be changed", "error")
-      return
-    }
-
-    // DEMO USER BLOCK
-    if (isDemoUser) {
-      Swal.fire(
-        "Restricted",
-        "Demo user cannot change name. Please create a real account.",
-        "warning"
-      )
-      return
-    }
-
-    setProfileLoading(true)
-
-    try {
-      const res = await fetch("/api/user/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: profile.name })
-      })
-
-      if (res.ok) {
-        await update({ name: profile.name })
-        Swal.fire("Success", "Profile updated successfully", "success")
-      } else {
-        Swal.fire("Error", "Failed to update profile", "error")
-      }
-    } catch {
-      Swal.fire("Error", "Something went wrong", "error")
-    }
-
-    setProfileLoading(false)
-  }
-
-  // ---------------------------
-  // CHANGE PASSWORD
-  // ---------------------------
-  const changePassword = async () => {
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      Swal.fire("Error", "All fields are required", "error")
-      return
-    }
-
-    if (newPassword !== confirmPassword) {
-      Swal.fire("Error", "Passwords do not match", "error")
-      return
-    }
-
-    if (newPassword.length < 6) {
-      Swal.fire("Error", "Password must be at least 6 characters", "error")
-      return
-    }
-
-    setPasswordLoading(true)
-
-    try {
-      const res = await fetch("/api/user/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentPassword,
-          newPassword
-        })
-      })
-
-      if (res.ok) {
-        Swal.fire("Success", "Password changed successfully", "success")
-
-        setCurrentPassword("")
-        setNewPassword("")
-        setConfirmPassword("")
-      } else {
-        const data = await res.json()
-        Swal.fire("Error", data.error || "Invalid current password", "error")
-      }
-    } catch {
-      Swal.fire("Error", "Server error", "error")
-    }
-
-    setPasswordLoading(false)
+    if (res?.ok) router.push("/dashboard")
+    else alert("Invalid credentials")
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-8 max-w-2xl"
-    >
-      <h1 className="text-3xl font-bold text-gray-800">Profile Settings</h1>
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-indigo-50 via-white to-purple-50 px-4">
+      <div className="w-full max-w-md">
+        <div className="bg-white p-8 rounded-2xl shadow-xl">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome back</h1>
+          <p className="text-gray-500 mb-6">Login to access your dashboard.</p>
 
-      {/* PROFILE SECTION */}
-      <div className="bg-white p-6 rounded-xl shadow-lg">
-        <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-          <User size={20} />
-          Profile Information
-        </h2>
-
-        <div className="space-y-4">
-
-          {/* NAME */}
-          <input
-            value={profile.name}
-            onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-            className="w-full border p-3 rounded-lg"
-            placeholder="Full Name"
-          />
-
-          {/* EMAIL (READ ONLY) */}
-          <input
-            value={profile.email}
-            disabled
-            className="w-full border p-3 rounded-lg bg-gray-100 cursor-not-allowed"
-          />
-
-          <button
-            onClick={updateProfile}
-            disabled={profileLoading}
-            className="bg-indigo-600 text-white px-6 py-3 rounded-lg flex items-center gap-2"
-          >
-            <Save size={18} />
-            {profileLoading ? "Updating..." : "Update Profile"}
-          </button>
-        </div>
-      </div>
-
-      {/* PASSWORD SECTION */}
-      <div className="bg-white p-6 rounded-xl shadow-lg">
-        <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-          <Lock size={20} />
-          Change Password
-        </h2>
-
-        <div className="space-y-4">
-
-          {/* CURRENT */}
-          <div className="relative">
-            <input
-              type={showCurrentPassword ? "text" : "password"}
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full border p-3 pr-10 rounded-lg"
-              placeholder="Current Password"
-            />
+          <div className="space-y-3 mb-6">
             <button
               type="button"
-              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-              className="absolute right-3 top-3"
+              onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+              className="w-full flex items-center justify-center gap-3 border border-gray-200 py-2 rounded-lg hover:bg-gray-50 transition"
             >
-              {showCurrentPassword ? <EyeOff /> : <Eye />}
+              <Globe className="text-black" />
+              Continue with Google
+            </button>
+
+            <button
+              type="button"
+              onClick={() => signIn("github", { callbackUrl: "/dashboard" })}
+              className="w-full flex items-center justify-center gap-3 border border-gray-200 py-2 rounded-lg hover:bg-gray-50 transition"
+            >
+              <Github className="text-black" />
+              Continue with GitHub
             </button>
           </div>
 
-          {/* NEW */}
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full border p-3 rounded-lg"
-            placeholder="New Password"
-          />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-4 py-3"
+              type="email"
+              required
+            />
 
-          {/* CONFIRM */}
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full border p-3 rounded-lg"
-            placeholder="Confirm Password"
-          />
+            <input
+              placeholder="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-4 py-3"
+              required
+            />
 
-          <button
-            onClick={changePassword}
-            disabled={passwordLoading}
-            className="bg-indigo-600 text-white px-6 py-3 rounded-lg flex items-center gap-2"
-          >
-            <Lock size={18} />
-            {passwordLoading ? "Changing..." : "Change Password"}
-          </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-indigo-600 text-white py-3 rounded-lg"
+            >
+              {loading ? "Signing in..." : "Sign in"}
+            </button>
+          </form>
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
